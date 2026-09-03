@@ -24,18 +24,16 @@ jobs:
             build-essential bc bison flex libssl-dev libncurses5-dev \
             git python3 make curl wget ccache clang lld \
             android-sdk-libsparse-utils python3-pip python3-setuptools
-          
-          # Clone mkbootimg repository directly
-          git clone --depth=1 https://github.com/aosp-mirror/platform_system_tools_mkbootimg.git mkbootimg_tools
-          sudo cp mkbootimg_tools/mkbootimg.py /usr/local/bin/mkbootimg
-          sudo cp mkbootimg_tools/unpack_bootimg.py /usr/local/bin/unpack_bootimg
+
+          # Fetch mkbootimg tools directly without git clone
+          sudo wget https://raw.githubusercontent.com/LineageOS/android_system_tools_mkbootimg/lineage-20.0/mkbootimg.py -O /usr/local/bin/mkbootimg
+          sudo wget https://raw.githubusercontent.com/LineageOS/android_system_tools_mkbootimg/lineage-20.0/unpack_bootimg.py -O /usr/local/bin/unpack_bootimg
           sudo chmod +x /usr/local/bin/mkbootimg /usr/local/bin/unpack_bootimg
 
           # Fetch standalone mkdtboimg tool
-          wget https://raw.githubusercontent.com/LineageOS/android_system_libufdt/lineage-20.0/utils/src/mkdtboimg.py -O mkdtboimg
-          sudo mv mkdtboimg /usr/local/bin/mkdtboimg
+          sudo wget https://raw.githubusercontent.com/LineageOS/android_system_libufdt/lineage-20.0/utils/src/mkdtboimg.py -O /usr/local/bin/mkdtboimg
           sudo chmod +x /usr/local/bin/mkdtboimg
-
+          
       - name: Download AOSP Clang Toolchain
         run: |
           mkdir -p toolchain/clang
