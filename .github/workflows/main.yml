@@ -1,3 +1,45 @@
+name: Build S10 5G Kernel Images (boot, dtbo, dtb)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ lineage-23.2 ]
+
+jobs:
+  build-images:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Kernel Source
+        uses: actions/checkout@v4
+        with:
+          repository: LineageOS/android_kernel_samsung_exynos9820
+          ref: lineage-23.2
+          path: kernel
+
+      - name: Install Build Dependencies & Tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential bc bison flex libssl-dev libncurses5-dev \
+            git python3 make curl wget ccache clang lld \
+            android-sdk-libsparse-utils libufdt-dev python3-pip
+          
+          pip3 install git+https://github.com/aosp-mirror/platform_system_tools_mkbootimg.git
+
+      - name: Download AOSP Clang Toolchain
+        run: |
+          mkdir -p toolchain/clang
+          wget -q https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/main/clang-r487594.tar.gz -O clang.tar.gz
+          tar -xf clang.tar.gz -C toolchain/clang
+          rm clang.tar.gz
+
+      - name: Download GCC Toolchains
+        run: |
+          mkdir -p toolchain/gcc64 toolchain/gcc32
+          git clone --depth=1 https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9 toolchain/gcc64
+          git clone --depth=1 https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9 toolchain/gcc32
+
       - name: Compile S10 5G Kernel & Device Trees
         run: |
           cd kernel
@@ -11,35 +53,29 @@
           export CROSS_COMPILE_ARM32=arm-linux-androideabi-
           export TARGET_SOC=exynos9820
 
-          # Load the S10 5G defconfig directly
           make exynos9820-beyondx_defconfig
-
-          # Build kernel image, DTBs, and DTBOs
           make -j$(nproc --all)
 
       - name: Process & Generate Target Images (S10 5G / beyondx)
         run: |
           mkdir -p output_images
           
-          # 1. Locate Kernel Binary (Image or Image.lz4)
+          # Locate Kernel Binary
           if [ -f "kernel/arch/arm64/boot/Image.lz4" ]; then
             CP_IMAGE="kernel/arch/arm64/boot/Image.lz4"
           else
             CP_IMAGE="kernel/arch/arm64/boot/Image"
           fi
           
-          # 2. Extract S10 5G DTB
-          # Searches specifically for compiled DTBs containing 'beyondx' or 'exynos9820'
+          # Extract S10 5G DTB
           DTB_PATH=$(find kernel/arch/arm64/boot/ -name "*beyondx*.dtb" -o -name "*exynos9820*.dtb" | head -n 1)
-          
           if [ -n "$DTB_PATH" ]; then
             cp "$DTB_PATH" output_images/dtb.img
           else
-            # Fallback: concatenate all generated exynos DTBs into a single dtb.img
             cat $(find kernel/arch/arm64/boot/ -name "*.dtb") > output_images/dtb.img
           fi
 
-          # 3. Create dtbo.img using mkdtboimg
+          # Create dtbo.img using mkdtboimg
           DTBO_FILES=$(find kernel/arch/arm64/boot/ -name "*.dtbo" | tr '\n' ' ')
           if [ -n "$DTBO_FILES" ]; then
             mkdtboimg create output_images/dtbo.img $DTBO_FILES
@@ -47,7 +83,7 @@
             echo "No DTBO files found."
           fi
 
-          # 4. Pack final boot.img (Header Version 2 for S10/Exynos 9820)
+          # Pack final boot.img
           mkbootimg \
             --kernel "$CP_IMAGE" \
             --ramdisk /dev/null \
@@ -59,4 +95,10 @@
             --os_patch_level 2026-08 \
             --header_version 2 \
             --output output_images/boot.img
-            
+
+      - name: Upload Kernel Images
+        uses: actions/upload-artifact@v4
+        with:
+          name: S10-5G-LineageOS-23.2-Images
+          path: output_images/*
+          
