@@ -25,19 +25,14 @@ jobs:
             git python3 make curl wget ccache clang lld \
             android-sdk-libsparse-utils python3-pip python3-setuptools
 
-          # Install official AOSP mkbootimg package via PyPI
-          pip3 install --break-system-packages mkbootimg
+          # Direct download of mkbootimg & unpack_bootimg scripts
+          sudo wget https://raw.githubusercontent.com/aosp-mirror/platform_system_tools_mkbootimg/master/mkbootimg.py -O /usr/local/bin/mkbootimg
+          sudo wget https://raw.githubusercontent.com/aosp-mirror/platform_system_tools_mkbootimg/master/unpack_bootimg.py -O /usr/local/bin/unpack_bootimg
+          sudo chmod +x /usr/local/bin/mkbootimg /usr/local/bin/unpack_bootimg
 
-          # Fetch standalone mkdtboimg tool from working repository
+          # Direct download of mkdtboimg
           sudo wget https://raw.githubusercontent.com/carlitoxxPro/mkdtboimg/main/mkdtboimg.py -O /usr/local/bin/mkdtboimg
           sudo chmod +x /usr/local/bin/mkdtboimg
-          
-      - name: Download AOSP Clang Toolchain
-        run: |
-          mkdir -p toolchain/clang
-          wget -q https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/main/clang-r487594.tar.gz -O clang.tar.gz
-          tar -xf clang.tar.gz -C toolchain/clang
-          rm clang.tar.gz
 
       - name: Download GCC Toolchains
         run: |
