@@ -16,17 +16,16 @@ jobs:
           repository: LineageOS/android_kernel_samsung_exynos9820
           ref: lineage-23.2
           path: kernel
-
+          
       - name: Install Build Dependencies & Tools
         run: |
           sudo apt-get update
           sudo apt-get install -y \
             build-essential bc bison flex libssl-dev libncurses5-dev \
             git python3 make curl wget ccache clang lld \
-            android-sdk-libsparse-utils libufdt-dev python3-pip
+            android-sdk-libsparse-utils python3-pip python3-setuptools
           
-          pip3 install git+https://github.com/aosp-mirror/platform_system_tools_mkbootimg.git
-
+          pip3 install --break-system-packages git+https://github.com/aosp-mirror/platform_system_tools_mkbootimg.git
       - name: Download AOSP Clang Toolchain
         run: |
           mkdir -p toolchain/clang
